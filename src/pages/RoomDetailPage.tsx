@@ -14,6 +14,8 @@ import config from '../http/config';
 import axiosInstance from '../http/axiosInstance';
 import { type Room, type Schedule, RoomApi, ScheduleApi, ReservationApi, type ReservationCreate } from '../api'; 
 import BookingModal from '../components/BookingModal';
+import ScheduleModal from '../components/ScheduleModal';
+import EditRoomModal from '../components/RoomEditModal';
 
 const RoomDetailPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -25,6 +27,41 @@ const RoomDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [schedule, setSchedule] = useState<Schedule | null>(null);
+  const [schedModal, setSchedModal] = useState(false);
+  const [editModal, setEditModal] = useState(false);
+
+	
+  const closeSchedModal = () => {
+	setSchedModal(false);
+  }
+
+  const submitSchedModal = async (id : number, payload : ScheduleCreate) => {
+	const api = new ScheduleApi(config, undefined, axiosInstance);
+	const response = await api.createSchedule(id, payload);
+
+	if (response.status == 201){
+		const scheduleApi = new ScheduleApi(config, undefined, axiosInstance);
+		const scheduleResponse = await scheduleApi.listRoomSchedules(Number(roomId));
+
+		setSchedules(scheduleResponse.data);
+		closeSchedModal();
+	}
+  }
+
+  const closeEditModal = () => {
+	setEditModal(false);
+  }
+
+  const onUpdateDetails = async (id : number, payload : RoomUpdate) => {
+	const api = new RoomApi(config, undefined, axiosInstance);
+	const response = await api.updateRoom(id, payload);
+	console.log(response);
+  }
+
+  const onUploadImage = async (id : number, file : File, description? : string) => {
+	const api = new RoomApi(config, undefined, axiosInstance);
+	const response = await api.uploadRoomImage(id, file, description);
+  }
 
   useEffect(() => {
     const fetchRoomDetails = async () => {
@@ -36,12 +73,6 @@ const RoomDetailPage: React.FC = () => {
         // Assuming your generated API has a getRoom or getRoomById method:
         const roomResponse = await roomApi.getRoomById(Number(roomId));
         setRoom(roomResponse.data);
-
-        // --- SCHEDULE FETCHING ---
-        // Uncomment and adjust this when your ScheduleApi is ready
-        // const scheduleApi = new ScheduleApi(config, undefined, axiosInstance);
-        // const scheduleResponse = await scheduleApi.listSchedules({ roomId: Number(roomId) });
-        // setSchedules(scheduleResponse.data.items);
 
 		const scheduleApi = new ScheduleApi(config, undefined, axiosInstance);
 		const scheduleResponse = await scheduleApi.listRoomSchedules(Number(roomId));
@@ -114,6 +145,22 @@ const RoomDetailPage: React.FC = () => {
 		roomname={room.name}
 		onSubmit={makeReserv}
 	/>
+
+	<ScheduleModal
+		isOpen={schedModal}
+		onClose={closeSchedModal}
+		roomId={room.id}
+		roomName={room.name}
+		onSubmit={submitSchedModal}
+	/>
+
+	<EditRoomModal
+		isOpen={editModal}
+		onClose={closeEditModal}
+		initialData={room}
+		onUpdateDetails={onUpdateDetails}
+		onUploadImage={onUploadImage}
+	/>
       
       {/* Navigation & Header */}
       <div className="flex items-center gap-4 border-b border-gray-800 pb-4">
@@ -140,7 +187,7 @@ const RoomDetailPage: React.FC = () => {
           {/* Photos / Placeholder */}
           <div className="bg-[#0A0A0A] border border-gray-800 rounded-lg overflow-hidden aspect-video flex items-center justify-center relative group">
             {room.photoUrls && room.photoUrls.length > 0 ? (
-               <img src={room.photoUrls[0]} alt={room.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+               <img src={`http://localhost:8080${room.photoUrls[5]}`} alt={room.photoUrls[2]} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
             ) : (
                <div className="flex flex-col items-center text-gray-700">
                  <ImageIcon size={48} className="mb-2" />
@@ -179,7 +226,9 @@ const RoomDetailPage: React.FC = () => {
             {/* Admin Actions Container */}
             <RoleGuard roles={['Administrator']}>
               <div className="pt-4 border-t border-gray-800">
-                 <button className="w-full bg-transparent border border-accent text-accent hover:bg-accent hover:text-white font-bold py-2 px-4 rounded transition-all uppercase text-sm tracking-wider">
+                 <button className="w-full bg-transparent border border-accent text-accent hover:bg-accent hover:text-white font-bold py-2 px-4 rounded transition-all uppercase text-sm tracking-wider"
+				onClick={()=>setEditModal(true)}
+				 >
                    Modify Facility Data
                  </button>
               </div>
@@ -198,7 +247,8 @@ const RoomDetailPage: React.FC = () => {
               
               {/* Only admins can inject new schedules freely */}
               <RoleGuard roles={['Administrator']}>
-                <button className="text-xs bg-gray-800 hover:bg-gray-700 text-white px-3 py-1 rounded font-mono uppercase tracking-wider transition-colors">
+                <button className="text-xs bg-gray-800 hover:bg-gray-700 text-white px-3 py-1 rounded font-mono uppercase tracking-wider transition-colors" 
+				onClick={()=>setSchedModal(true)}>
                   + Add Timeslot
                 </button>
               </RoleGuard>
