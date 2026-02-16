@@ -1,53 +1,109 @@
 import React, { useEffect, useState } from 'react';
-import { Clock, Plus, Trash2, Edit, CalendarCheck, CalendarX } from 'lucide-react';
+import { Clock, Plus, Trash2, Edit, CalendarCheck, CalendarX, AlertCircle } from 'lucide-react';
 import RoleGuard from '../http/ProtectedProp'; 
 import config from '../http/config';
 import axiosInstance from '../http/axiosInstance';
-import { ScheduleApi } from '../api'; // Adjust based on your actual generated API
+import { ScheduleApi } from '../api'; 
+// Assuming you have these modals available from previous steps
+import BookingModal from '../components/BookingModal';
+import { type ReservationCreate, ReservationApi } from '../api';
 
 export interface Schedule {
   id: number;
   roomId: number;
-  startTime: string; // Expected format: "hh:mm"
-  endTime: string;   // Expected format: "hh:mm"
+  startTime: string; 
+  endTime: string;   
   isReserved: boolean;
 }
 
 const SchedulesPage: React.FC = () => {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Modal States
+  const [bookingModalOpen, setBookingModalOpen] = useState(false);
+  const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
 
   useEffect(() => {
-    const fetchSchedules = async () => {
-      setLoading(true);
-      try {
-		const api = new ScheduleApi(config, undefined, axiosInstance);
-		const response = await api.listSchedules();
-
-        // --- API CALL SETUP ---
-        // const api = new ScheduleApi(config, undefined, axiosInstance);
-        // const response = await api.listSchedules();
-        // setSchedules(response.data.items || response.data);
-
-		setSchedules(response.data);
-        setLoading(false);
-
-      } catch (error) {
-        console.error("Failed to fetch schedules", error);
-        setLoading(false);
-      }
-    };
-
     fetchSchedules();
   }, []);
 
-  if (loading) {
+  const fetchSchedules = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const api = new ScheduleApi(config, undefined, axiosInstance);
+      const response = await api.listSchedules();
+      setSchedules(response.data.items || response.data);
+    } catch (err) {
+      console.error("Failed to fetch schedules", err);
+      setError("FAILED TO SYNC GLOBAL TIMETABLE.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- DELETE HANDLER ---
+  const handleDeleteSchedule = async (id: number) => {
+    // Optional: You could add a confirmation window here like we did for Rooms
+    if (!window.confirm(`Are you sure you want to purge Timeslot #${id}?`)) return;
+
+    try {
+      const api = new ScheduleApi(config, undefined, axiosInstance);
+      // Adjust method name based on your swagger API
+      await api.deleteSchedule(id);
+      
+      // Remove from local state immediately to update UI
+      setSchedules(prev => prev.filter(schedule => schedule.id !== id));
+      
+    } catch (err) {
+      console.error("Failed to delete schedule", err);
+      // You might want to use a toast notification here instead of a global error
+      alert("SYS.ERR: Failed to purge timeslot. It may be linked to an active reservation.");
+    }
+  };
+
+  // --- BOOKING HANDLERS ---
+  const openBookingModal = (schedule: Schedule) => {
+    setSelectedSchedule(schedule);
+    setBookingModalOpen(true);
+  };
+
+  const handleCreateReservation = async (payload: ReservationCreate) => {
+    try {
+      const api = new ReservationApi(config, undefined, axiosInstance);
+      await api.createReservation(payload);
+      
+      // Optionally re-fetch schedules to show it as reserved
+      // fetchSchedules(); 
+      
+      setBookingModalOpen(false);
+    } catch (err) {
+      console.error("Booking failed", err);
+      throw err; // Let the modal handle the error display if you set it up that way
+    }
+  };
+
+  if (loading && schedules.length === 0) {
     return <div className="p-8 text-highlight animate-pulse font-mono tracking-widest">SYNCING GLOBAL TIMETABLE...</div>;
   }
 
   return (
     <div className="space-y-8">
       
+      {/* Booking Modal Integration */}
+      {selectedSchedule && (
+        <BookingModal
+            isOpen={bookingModalOpen}
+            onClose={() => setBookingModalOpen(false)}
+            scheduleId={selectedSchedule.id}
+            timeFrame={`${selectedSchedule.startTime} - ${selectedSchedule.endTime}`}
+            roomName={`ROOM-${selectedSchedule.roomId}`} // Generic name since we don't have room names fetched here
+            onSubmit={handleCreateReservation}
+        />
+      )}
+
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-800 pb-6">
         <div>
@@ -66,6 +122,13 @@ const SchedulesPage: React.FC = () => {
           </button>
         </RoleGuard>
       </div>
+
+      {error && (
+        <div className="p-4 bg-red-900/20 border-l-4 border-accent text-white flex items-center gap-3">
+          <AlertCircle size={20} className="text-accent" />
+          <span className="font-mono text-sm tracking-widest">{error}</span>
+        </div>
+      )}
 
       {/* Data Table */}
       <div className="bg-[#0A0A0A] border border-gray-800 rounded-lg overflow-hidden shadow-2xl">
@@ -129,10 +192,13 @@ const SchedulesPage: React.FC = () => {
 
                     {/* Actions */}
                     <td className="p-4 text-right space-x-2">
-                      {/* Booking Action - Available for Admins, Lecturers, Students */}
+                      {/* Booking Action */}
                       {!schedule.isReserved && (
                         <RoleGuard roles={['Administrator', 'Lecturer', 'Student']}>
-                          <button className="text-xs bg-highlight/10 text-highlight hover:bg-highlight hover:text-black border border-highlight/30 px-4 py-1.5 rounded font-black uppercase tracking-wider transition-all">
+                          <button 
+                            onClick={() => openBookingModal(schedule)}
+                            className="text-xs bg-highlight/10 text-highlight hover:bg-highlight hover:text-black border border-highlight/30 px-4 py-1.5 rounded font-black uppercase tracking-wider transition-all"
+                          >
                             Book
                           </button>
                         </RoleGuard>
@@ -140,10 +206,12 @@ const SchedulesPage: React.FC = () => {
 
                       {/* Management Actions - Admin Only */}
                       <RoleGuard roles={['Administrator']}>
-                         <button className="p-1.5 text-gray-500 hover:text-secondary bg-white/5 hover:bg-secondary/20 rounded transition-colors" title="Modify Timeslot">
-                           <Edit size={16} />
-                         </button>
-                         <button className="p-1.5 text-gray-500 hover:text-accent bg-white/5 hover:bg-accent/20 rounded transition-colors" title="Purge Timeslot">
+                         {/* DELETE BUTTON IMPLEMENTED HERE */}
+                         <button 
+                            onClick={() => handleDeleteSchedule(schedule.id)}
+                            className="p-1.5 text-gray-500 hover:text-accent bg-white/5 hover:bg-accent/20 rounded transition-colors" 
+                            title="Purge Timeslot"
+                          >
                            <Trash2 size={16} />
                          </button>
                       </RoleGuard>
