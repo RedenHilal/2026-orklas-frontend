@@ -168,13 +168,13 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
               className={`flex items-center gap-2 px-6 py-2 rounded font-black uppercase tracking-widest transition-all
                 ${isSubmitting 
                   ? 'bg-gray-800 text-gray-500 cursor-wait' 
-                  : 'bg-secondary text-black hover:bg-[#ff8a2b] shadow-[4px_4px_0px_#EBF400] transform hover:-translate-y-1 active:translate-y-0'
+                  : 'bg-secondary text-secondary hover:bg-[#ff8a2b] transform hover:-translate-y-1 active:translate-y-0'
                 }`}
             >
               {isSubmitting ? 'INJECTING...' : (
                 <>
                   <PlusSquare size={16} />
-                  INJECT TIMESLOT
+                  Create Schedule
                 </>
               )}
             </button>
