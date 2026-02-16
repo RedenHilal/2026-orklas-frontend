@@ -30,7 +30,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
 
   useEffect(() => {
     // Simulate fetching availability when month or schedule changes
-    setBookedDates([5, 12, 15]); 
+    setBookedDates([]); 
     setSelectedDate(null); 
     setDescription(''); // Reset description on open
   }, [currentMonth, scheduleId, isOpen]);
