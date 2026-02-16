@@ -191,7 +191,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
                 className={`mt-6 w-full flex items-center justify-center gap-2 py-3 rounded font-black uppercase tracking-widest transition-all
                   ${!selectedDate || isSubmitting 
                     ? 'bg-gray-800 text-gray-500 cursor-not-allowed' 
-                    : 'bg-highlight text-black hover:bg-[#d4db00] shadow-[4px_4px_0px_#F57D1F] transform hover:-translate-y-1 active:translate-y-0'
+                    : 'bg-highlight text-secondary hover:bg-[#d4db00] transform hover:-translate-y-1 active:translate-y-0'
                   }`}
               >
                 {isSubmitting ? 'TRANSMITTING...' : (

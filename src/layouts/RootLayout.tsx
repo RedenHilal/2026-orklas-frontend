@@ -11,6 +11,7 @@ import {
   Menu
 } from 'lucide-react';
 import '../App.css';
+import getId from '../http/Role'
 
 const RootLayout: React.FC = () => {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ const RootLayout: React.FC = () => {
     { name: 'Rooms', path: '/rooms', icon: DoorOpen },
     { name: 'Schedules', path: '/schedules', icon: CalendarClock },
     { name: 'Reservations', path: '/reservations', icon: BookOpenCheck },
-    { name: 'Users', path: '/users', icon: Users },
+    { name: 'Users', path: '/users/me', icon: Users },
   ];
 
   const handleLogout = async () => {

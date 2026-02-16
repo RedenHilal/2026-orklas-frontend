@@ -392,7 +392,7 @@ const RoomDetailPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {!schedule.isReserved && room.status !== 'closed' && (
+                    {room.status !== 'closed' && (
                       <RoleGuard roles={['Administrator', 'Lecturer', 'Student']}>
                         <button className="bg-highlight/10 text-highlight hover:bg-highlight hover:text-black border border-highlight/30 px-6 py-2 rounded font-black uppercase text-sm tracking-wider transition-all shadow-[2px_2px_0px_#EBF400]"
                         onClick={() => openModal(schedule)}

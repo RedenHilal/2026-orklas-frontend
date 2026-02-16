@@ -8,7 +8,7 @@ import RoomDetailPage from "./pages/RoomDetailPage"
 import SchedulesPage from "./pages/SchedulePage"
 import ReservationsPage from "./pages/ReservationsPage"
 //import UsersPage from "./pages/UsersPage"
-//import UserDetailPage from "./pages/UserDetailPage"
+import UserDetailPage from "./pages/UserDetailPage"
 import NotFoundPage from "./pages/NotFoundPage"
 import ProtectedRoute from "./http/ProtectedRoute"
 
@@ -52,10 +52,10 @@ const router = createBrowserRouter([
 //        path: "users",
 //        element: <UsersPage />,
 //      },
-//      {
-//        path: "users/:id",
-//        element: <UserDetailPage />,
-//      },
+      {
+        path: "users/me",
+        element: <UserDetailPage />,
+      },
     ],
   },
   {
